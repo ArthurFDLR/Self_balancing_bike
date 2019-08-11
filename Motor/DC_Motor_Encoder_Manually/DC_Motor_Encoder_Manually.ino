@@ -13,7 +13,7 @@ int speedcontrol = 0;
 volatile long encoderValue = 0;
 
 // One-second interval for measurements
-int interval = 100;
+int interval = 25;
 
 // Counters for milliseconds during interval
 long previousMillis = 0;
