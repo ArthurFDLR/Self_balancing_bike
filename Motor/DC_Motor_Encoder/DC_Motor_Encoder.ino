@@ -1,5 +1,6 @@
 #include "src/DC_motor_driver/DC_motor_driver.h"
 #include <Encoder.h>
+#include <Ewma.h>
 
 /*----------------------------------*/
 /*   VARIABLES and INSTANTIATIONS   */
@@ -8,7 +9,7 @@
 //// GLOBAL  ////
 
 unsigned long timePrev = 0;
-const int workingFrequency = 20; //Hz
+const int workingFrequency = 15; //Hz
 
 //// DC Motor control ////
 
@@ -22,14 +23,13 @@ int motorPwm = 0;
 
 //// DC Motor speed ////
 
-//const int motorIntervalMin = 25; //ms
-const float motorFilter = 0.8;       // [0,1] exponential filter parameter
-const int encoderCountRev = 212; // verified with tachymeter
-const int pinEncoderAInterrupt = 3;
-const int pinEncoderB = 4;
+const float motorFilter = 0.5;       // [0,1] exponential filter parameter
+const int encoderCountRev = 212;
+const int pinEncoderAInterrupt = 3; //PD3
+const int pinEncoderB = 4;  //PD4
 
-Encoder myEnc(pinEncoderAInterrupt, pinEncoderB); // Only one interupt pin. Need the other one for the IMU
-long motorTickCount = 0;
+const char registerMaskPIND = 0b00011000;
+volatile long motorTickCount = 0;
 unsigned long motorTimePrev = 0; //Some of those variables can be ignored simplify
 unsigned long motorTimeNow = 0;
 unsigned long motorTimeDiff = 0;
@@ -38,17 +38,25 @@ unsigned long motorSpeedRpmPrev = 0;
 unsigned long motorSpeedRpmRaw = 0;
 int motorDirection = 0; // {-1;0;1} with 0 => stopped
 
-void Update_MotorData() {
-  //if (millis() - motorTimePrev > motorIntervalMin) {
+
+void ISR_updateEncoder(){ //Direct access to register to optimize time consumption
+  if (((registerMaskPIND & PIND) == 0b00010000) or ((registerMaskPIND & PIND) == 0b00001000)){ 
+    motorTickCount++;
+  } else if (((registerMaskPIND & PIND) == 0b00000000) or ((registerMaskPIND & PIND) == 0b00011000)){
+    motorTickCount--;
+  }
+}
+
+
+void Update_MotorData(){
 
   //Get motor rotation speed from tick count
   motorTimeNow = millis();
   motorTimeDiff = motorTimeNow - motorTimePrev;
   motorTimePrev = motorTimeNow;
   motorSpeedRpmPrev = motorSpeedRpm;
-  motorTickCount = myEnc.read();
-  motorSpeedRpmRaw = (((motorTickCount > 0) ? motorTickCount : -motorTickCount) * 60000 / (encoderCountRev * motorTimeDiff)); // 60000 => ms to s
-  myEnc.write(0);
+  motorSpeedRpmRaw = ((motorTickCount > 0) ? motorTickCount : -motorTickCount) * 60000 / (encoderCountRev * motorTimeDiff); // 60000 => ms to s
+  motorTickCount = 0;
 
   //Set motor rotation direction
   if (motorSpeedRpm == 0) {
@@ -58,21 +66,26 @@ void Update_MotorData() {
   } else {
     motorDirection = -1;
   }
-
-  //Exponential filtering
-  motorTickCount = 0;
+  
+  //Filtering
   motorSpeedRpm = motorSpeedRpmRaw * motorFilter + motorSpeedRpmPrev * (1.0 - motorFilter);
 }
+
 /*-----------------------*/
 /*   Arduino Processes   */
 /*-----------------------*/
 
 void setup() {
   Serial.begin(9600);
+  
   pinMode(pinEncoderAInterrupt, INPUT_PULLUP);
   pinMode(pinEncoderB, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(pinEncoderAInterrupt), ISR_updateEncoder, CHANGE);
+  
   motorTimePrev = millis();
   timePrev = millis();
+
+  motorTickCount = 0;
 }
 
 void loop() {
@@ -85,8 +98,6 @@ void loop() {
     Update_MotorData();
 
     Serial.print(motorSpeedRpmRaw);
-    Serial.print("\t");
-    Serial.print(motorSpeedRpmPrev);
     Serial.print("\t");
     Serial.println(motorSpeedRpm);
     

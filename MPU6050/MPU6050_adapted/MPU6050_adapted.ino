@@ -7,7 +7,7 @@
 
 MPU6050 mpu;
 
-#define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
+const int pinIMUInterrupt = 2;  // use pin 2 on Arduino Uno & most boards
 
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -28,7 +28,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 // ================================================================
 
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
+void ISR_dmpDataReady() {
   mpuInterrupt = true;
 }
 
@@ -40,7 +40,7 @@ void setup_IMU() {
   // initialize device
   Serial.println(F("Initializing I2C devices..."));
   mpu.initialize();
-  pinMode(INTERRUPT_PIN, INPUT);
+  pinMode(pinIMUInterrupt, INPUT);
 
   // verify connection
   Serial.println(F("Testing device connections..."));
@@ -76,9 +76,9 @@ void setup_IMU() {
 
     // enable Arduino interrupt detection
     Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
-    Serial.print(digitalPinToInterrupt(INTERRUPT_PIN));
+    Serial.print(digitalPinToInterrupt(pinIMUInterrupt));
     Serial.println(F(")..."));
-    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
+    attachInterrupt(digitalPinToInterrupt(pinIMUInterrupt), ISR_dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
