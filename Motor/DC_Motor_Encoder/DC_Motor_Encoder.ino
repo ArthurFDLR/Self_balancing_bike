@@ -92,11 +92,13 @@ void loop() {
   if (millis() - timePrev > 1000/workingFrequency) {
     
     timePrev = millis();
-    motorPwm = map(analogRead(pinPotentiometer), 0, 1023, 0, limitMotorPwm);
+    motorPwm = map(analogRead(A0), 0, 1023, 0, limitMotorPwm);
     motor.setSpeed(motorPwm);
 
     Update_MotorData();
 
+    Serial.print(motorPwm);
+    Serial.print("\t");
     Serial.print(motorSpeedRpmRaw);
     Serial.print("\t");
     Serial.println(motorSpeedRpm);
