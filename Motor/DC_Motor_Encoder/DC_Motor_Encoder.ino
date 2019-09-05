@@ -1,6 +1,7 @@
 #include "src/DC_motor_driver/DC_motor_driver.h"
-#include <Encoder.h>
-#include <Ewma.h>
+#include "src/Encoder/Encoder.h"
+
+//#include <Ewma.h> // Filtering library
 
 /*----------------------------------*/
 /*   VARIABLES and INSTANTIATIONS   */
@@ -23,14 +24,15 @@ int motorPwm = 0;
 
 //// DC Motor speed ////
 
+/*
 const float motorFilter = 0.5;       // [0,1] exponential filter parameter
 const int encoderCountRev = 212;
 const int pinEncoderAInterrupt = 3; //PD3
 const int pinEncoderB = 4;  //PD4
 
-const char registerMaskPIND = 0b00011000;
+const char registerMaskPIND = 0b00011000; //Show pin 
 volatile long motorTickCount = 0;
-unsigned long motorTimePrev = 0; //Some of those variables can be ignored simplify
+unsigned long motorTimePrev = 0; //Some of those variables can be ignored/simplify
 unsigned long motorTimeNow = 0;
 unsigned long motorTimeDiff = 0;
 unsigned long motorSpeedRpm = 0;
@@ -70,6 +72,9 @@ void Update_MotorData(){
   //Filtering
   motorSpeedRpm = motorSpeedRpmRaw * motorFilter + motorSpeedRpmPrev * (1.0 - motorFilter);
 }
+*/
+
+EncoderQuad encoderInertiaWheel(3,4,0.5,212);
 
 /*-----------------------*/
 /*   Arduino Processes   */
@@ -77,15 +82,16 @@ void Update_MotorData(){
 
 void setup() {
   Serial.begin(9600);
-  
+/*
   pinMode(pinEncoderAInterrupt, INPUT_PULLUP);
   pinMode(pinEncoderB, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(pinEncoderAInterrupt), ISR_updateEncoder, CHANGE);
   
   motorTimePrev = millis();
-  timePrev = millis();
 
   motorTickCount = 0;
+*/
+  timePrev = millis();
 }
 
 void loop() {
@@ -95,13 +101,11 @@ void loop() {
     motorPwm = map(analogRead(A0), 0, 1023, 0, limitMotorPwm);
     motor.setSpeed(motorPwm);
 
-    Update_MotorData();
+    encoderInertiaWheel.Update_MotorData();
 
     Serial.print(motorPwm);
     Serial.print("\t");
-    Serial.print(motorSpeedRpmRaw);
-    Serial.print("\t");
-    Serial.println(motorSpeedRpm);
+    Serial.println(encoderInertiaWheel.motorSpeedRpm);
     
   }
 }
