@@ -6,6 +6,7 @@
  */
 
 #include "src/DC_motor_driver/DC_motor_driver.h"
+#include "src/Encoder/Encoder.h"
 
 //#include <Ewma.h> // Filtering library
 
@@ -31,6 +32,13 @@ const int limitMotorPwm = 128; //Stay under 6V for 12V alim.
 DC_motor motor( pinEscPWM, pinEscDir, limitMotorPwm);  // PWM = Pin 11, DIR = Pin 12.
 int motorPwm = 0;
 
+//// Encoder ////
+
+EncoderQuad encoderWheel(3,4,0.5,212);
+
+void ISR_TickEncoder(){ //ISR interface function
+  encoderWheel.ISR_updateEncoder();
+}
 
 /*-----------------------*/
 /*   Arduino Processes   */
@@ -38,7 +46,7 @@ int motorPwm = 0;
 
 void setup() {
   Serial.begin(9600);
-  Encoder_Setup();
+  attachInterrupt(digitalPinToInterrupt(3), ISR_TickEncoder, CHANGE);
   timePrev = millis();
 }
 
@@ -49,11 +57,11 @@ void loop() {
     motorPwm = map(analogRead(A0), 0, 1023, 0, limitMotorPwm);
     motor.setSpeed(motorPwm);
 
-    Update_MotorData();
+    encoderWheel.Update_MotorData();
 
     Serial.print(motorPwm);
     Serial.print("\t");
-    Serial.println(motorSpeedRpm);
+    Serial.println(encoderWheel.motorSpeedRpm);
     
   }
 }
