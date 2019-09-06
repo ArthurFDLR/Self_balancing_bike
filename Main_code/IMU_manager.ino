@@ -1,9 +1,15 @@
-// https://www.i2cdevlib.com/docs/html/class_m_p_u6050.html
+/**
+ * Run on arduino nano to controle and measure DC motor's speed.
+ *
+ * note : Working frequency is set in loop(){},
+ *        the interrupt pin is therefor not used to trigger data reading.
+ *        To avoid delayed transfer, the buffer is emptyed at the end of Update_YPR()
+ *        
+ * resources : https://www.i2cdevlib.com/docs/html/class_m_p_u6050.html   
+ * author : Arthur FINDELAIR, github.com/ArthurFDLR
+ * date : September 2019
+ */
 
-
-#include <I2Cdev.h>
-#include <MPU6050_6Axis_MotionApps20.h>
-#include <Wire.h>
 
 MPU6050 mpu;
 
@@ -20,23 +26,22 @@ uint8_t fifoBuffer[64]; // FIFO storage buffer
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
 VectorFloat gravity;    // [x, y, z]            gravity vector
-float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 
 // ================================================================
 // ===               INTERRUPT DETECTION ROUTINE                ===
 // ================================================================
-
+/*
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 void ISR_dmpDataReady() {
   mpuInterrupt = true;
 }
-
+*/
 // ================================================================
 // ===                      FUNCTION IMU                        ===
 // ================================================================
 
-void setup_IMU() {
+void IMU_setup() {
   // initialize device
   Serial.println(F("Initializing I2C devices..."));
   mpu.initialize();
@@ -59,11 +64,12 @@ void setup_IMU() {
 
   // Useless since auto-calibration
   // supply your own gyro offsets here, scaled for min sensitivity
+/*
   mpu.setXGyroOffset(220);
   mpu.setYGyroOffset(76);
   mpu.setZGyroOffset(-85);
   mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
-
+*/
   // make sure it worked (returns 0 if so)
   if (devStatus == 0) {
     // Calibration Time: generate offsets and calibrate our MPU6050
@@ -78,7 +84,7 @@ void setup_IMU() {
     Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
     Serial.print(digitalPinToInterrupt(pinIMUInterrupt));
     Serial.println(F(")..."));
-    attachInterrupt(digitalPinToInterrupt(pinIMUInterrupt), ISR_dmpDataReady, RISING);
+    //attachInterrupt(digitalPinToInterrupt(pinIMUInterrupt), ISR_dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
@@ -103,7 +109,7 @@ void Update_YPR() {
     Serial.println("Shit failed yo");
     return;                                               // if programming failed, don't try to do anything
   }
-
+/*
   // wait for MPU interrupt or extra packet(s) available
   while (!mpuInterrupt && fifoCount < packetSize) {
     if (mpuInterrupt && fifoCount < packetSize) {
@@ -115,9 +121,8 @@ void Update_YPR() {
     // stuff to see if mpuInterrupt is true, and if so, "break;" from the
     // while() loop to immediately process the MPU data
   }
-
-
-  mpuInterrupt = false;                 // reset interrupt flag
+*/
+//  mpuInterrupt = false;                 // reset interrupt flag
   mpuIntStatus = mpu.getIntStatus();    //get INT_STATUS byte
   fifoCount = mpu.getFIFOCount();       // get current FIFO count
 
@@ -134,8 +139,9 @@ void Update_YPR() {
       mpuIntStatus = mpu.getIntStatus();
     }
 
-    while (fifoCount >= packetSize) { // Lets catch up to NOW, someone is using the dreaded delay()!
+    while (fifoCount >= packetSize) { // Lets catch up to NOW
       mpu.getFIFOBytes(fifoBuffer, packetSize);
+      //Serial.println(F("IMU catching up!"));
       // track FIFO count here in case there is > 1 packet available
       // (this lets us immediately read more without waiting for an interrupt)
       fifoCount -= packetSize;
@@ -145,37 +151,4 @@ void Update_YPR() {
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
   }
-}
-
-// ================================================================
-// ===                      INITIAL SETUP                       ===
-// ================================================================
-
-void setup() {
-
-  Wire.begin(); // join I2C bus (I2Cdev library doesn't do this automatically)
-  Wire.setClock(400000); // 400kHz I2C clock. By default : 100kHz
-  Serial.begin(9600);
-
-  setup_IMU();
-}
-
-// ================================================================
-// ===                    MAIN PROGRAM LOOP                     ===
-// ================================================================
-
-void loop() {
-  
-  Update_YPR();
-
-
-  // display Euler angles in degrees
-  Serial.print("ypr (zyx)\t");
-  Serial.print(ypr[0] * 180 / M_PI);
-  Serial.print("\t");
-  Serial.print(ypr[1] * 180 / M_PI);
-  Serial.print("\t");
-  Serial.println(ypr[2] * 180 / M_PI);
-
-  
 }
