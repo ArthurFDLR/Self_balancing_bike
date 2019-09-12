@@ -1,35 +1,52 @@
-/**
-   - Run on arduino nano
-   - Controle and measure DC motor's speed
-   - Read IMU data
-   
-   author : Arthur FINDELAIR, github.com/ArthurFDLR
-   date : September 2019
-*/
+/**   SELF STABILIZED BIKE
+ *  
+ * note : - Run on arduino nano
+ *        - Controle and measure DC motor's speed
+ *        - Read IMU data
+ *        - Compute PIDs data
+ * 
+ * author : Arthur FINDELAIR, github.com/ArthurFDLR
+ * date : September 2019
+ */
+
+// =============================
+// ===       Libraries       ===
+// =============================
 
 #include "src/DC_motor_driver/DC_motor_driver.h"
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "Wire.h"
 
-/*----------------------------------*/
-/*   VARIABLES and INSTANTIATIONS   */
-/*----------------------------------*/
+// ================================================
+// ===       VARIABLES and INSTANTIATIONS       ===
+// ================================================
 
 //// GLOBAL  ////
 
+uint8_t serialViewerMode = 1;
 uint16_t timePrev = 0;
 uint16_t computationTime = 0;
 const int8_t workingFrequency = 65; //Hz
 
+//// PID controller  ////
+
+float leanAngleSetPoint = 0;
+float leanAngle_raw;
+float leanAngle; //degrees
+float leanAngle_Integer;
+float leanAngle_derivative;
+
 //// Encoder  ////
 
-uint16_t motorSpeedRpm = 0;
+uint32_t motorSpeedRpmRaw = 0;
+uint32_t motorSpeedRpm = 0;
 int8_t motorDirection = 0; // {-1;0;1} with 0 => stopped
 
 //// IMU  ////
 
 float ypr[3]; // [yaw, pitch, roll]
+uint32_t IMU_time_prev, IMU_time_now; // to compute leanAngle derivative and integer
 
 //// DC Motor control ////
 
@@ -42,9 +59,9 @@ DC_motor motor( pinEscPWM, pinEscDir, limitMotorPwm);  // PWM = Pin 11, DIR = Pi
 int8_t motorPwm = 0;
 
 
-/*-----------------------*/
-/*   Arduino Processes   */
-/*-----------------------*/
+// =====================================
+// ===       ARDUINO PROCESSES       ===
+// =====================================
 
 void setup() {
   Wire.begin(); // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -64,12 +81,13 @@ void loop() {
     motorPwm = map(analogRead(A0), 0, 1023, 0, limitMotorPwm);
     motor.setSpeed(motorPwm);
 
-    Update_MotorData();
-    Update_YPR();
-
+    Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
+    Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
+    leanAngle_compute();
+    
     computationTime = millis() - timePrev;
     
-    Serial_viewer();    
+    Serial_viewer(serialViewerMode);    
   }
   else {
     Serial.println("_"); //Check working frequency calibration

@@ -1,6 +1,5 @@
-/**
- * Run on arduino nano to controle and measure DC motor's speed.
- *
+/**   SELF STABILIZED BIKE - Encoder
+ * 
  * note : I tried to build a library to read the encoder.
  *        ISR calling inside of class is quite complicate.
  *        I didn't wanted to risk a lose of effectiveness.
@@ -14,18 +13,16 @@
 /*---------------------------------------*/
 
 const float motorFilter = 0.5;       // [0,1] exponential filter parameter
-const int encoderCountRev = 212;
-const int pinEncoderAInterrupt = 3; //PD3
-const int pinEncoderB = 4;  //PD4
+const int8_t encoderCountRev = 212;
+const int8_t pinEncoderAInterrupt = 3; //PD3
+const int8_t pinEncoderB = 4;  //PD4
 
 const char registerMaskPIND = 0b00011000; //Show pin 
-volatile long motorTickCount = 0;
-unsigned long motorTimePrev = 0; //Some of those variables can be ignored/simplify
-unsigned long motorTimeNow = 0;
-unsigned long motorTimeDiff = 0;
-unsigned long motorSpeedRpmPrev = 0;
-unsigned long motorSpeedRpmRaw = 0;
-
+volatile int32_t motorTickCount = 0;
+uint32_t motorTimePrev = 0; //Some of those variables can be ignored/simplify ; Microsec
+uint32_t motorTimeNow = 0;
+uint32_t motorTimeDiff = 0;
+uint32_t motorSpeedRpmPrev = 0;
 
 /*---------------------------------------*/
 /*   FUNCITON for Encoder management     */
@@ -45,7 +42,7 @@ void Encoder_Setup(){
   pinMode(pinEncoderB, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(pinEncoderAInterrupt), ISR_updateEncoder, CHANGE);
   
-  motorTimePrev = millis();
+  motorTimePrev = micros();
 
   motorTickCount = 0;
 }
@@ -54,11 +51,11 @@ void Encoder_Setup(){
 void Update_MotorData(){
 
   //Get motor rotation speed from tick count
-  motorTimeNow = millis();
+  motorTimeNow = micros();
   motorTimeDiff = motorTimeNow - motorTimePrev;
   motorTimePrev = motorTimeNow;
   motorSpeedRpmPrev = motorSpeedRpm;
-  motorSpeedRpmRaw = ((motorTickCount > 0) ? motorTickCount : -motorTickCount) * 60000 / (encoderCountRev * motorTimeDiff); // 60000 => ms to s
+  motorSpeedRpmRaw = ((motorTickCount > 0) ? motorTickCount : -motorTickCount) * 60000000 / (encoderCountRev * motorTimeDiff); // 60000000 => micros to min
   motorTickCount = 0;
 
   //Set motor rotation direction

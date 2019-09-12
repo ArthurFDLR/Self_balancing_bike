@@ -1,6 +1,5 @@
-/**
- * Run on arduino nano to controle and measure DC motor's speed.
- *
+/**   SELF STABILIZED BIKE - IMU
+ *    
  * note : Working frequency is set in loop(){},
  *        the interrupt pin is therefor not used to trigger data reading.
  *        To avoid delayed transfer, the buffer is emptyed at the end of Update_YPR()
@@ -10,6 +9,9 @@
  * date : September 2019
  */
 
+// ==============================================
+// ===               VARIABLES                ===
+// ==============================================
 
 MPU6050 mpu;
 
@@ -19,36 +21,36 @@ const int pinIMUInterrupt = 2;  // use pin 2 on Arduino Uno & most boards
 bool dmpReady = false;  // set true if DMP init was successful
 uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
 uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
-uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;     // count of all bytes currently in FIFO
+uint32_t packetSize;    // expected DMP packet size (default is 42 bytes)
+uint32_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
 VectorFloat gravity;    // [x, y, z]            gravity vector
 
-
-// ================================================================
-// ===               INTERRUPT DETECTION ROUTINE                ===
-// ================================================================
 /*
+// ===============================================
+// ===       INTERRUPT DETECTION ROUTINE       ===
+// ===============================================
+
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 void ISR_dmpDataReady() {
   mpuInterrupt = true;
 }
 */
-// ================================================================
-// ===                      FUNCTION IMU                        ===
-// ================================================================
+// =========================================================
+// ===         FUNCTION IMU : Setup and Update           ===
+// =========================================================
 
 void IMU_setup() {
   // initialize device
-  Serial.println(F("Initializing I2C devices..."));
+  // Serial.println(F("Initializing I2C devices..."));
   mpu.initialize();
   pinMode(pinIMUInterrupt, INPUT);
 
   // verify connection
-  Serial.println(F("Testing device connections..."));
+  // Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
 /*
@@ -59,7 +61,7 @@ void IMU_setup() {
   while (Serial.available() && Serial.read()); // empty buffer again
 */
   // load and configure the DMP
-  Serial.println(F("Initializing DMP..."));
+  // Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
 
   // Useless since auto-calibration
@@ -77,13 +79,13 @@ void IMU_setup() {
     mpu.CalibrateGyro(6);
     mpu.PrintActiveOffsets();
     // turn on the DMP, now that it's ready
-    Serial.println(F("Enabling DMP..."));
+    // Serial.println(F("Enabling DMP..."));
     mpu.setDMPEnabled(true);
 
     // enable Arduino interrupt detection
-    Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
-    Serial.print(digitalPinToInterrupt(pinIMUInterrupt));
-    Serial.println(F(")..."));
+    // Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
+    // Serial.print(digitalPinToInterrupt(pinIMUInterrupt));
+    // Serial.println(F(")..."));
     //attachInterrupt(digitalPinToInterrupt(pinIMUInterrupt), ISR_dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
 
@@ -98,13 +100,13 @@ void IMU_setup() {
     // 1 = initial memory load failed
     // 2 = DMP configuration updates failed
     // (if it's going to break, usually the code will be 1)
-    Serial.print(F("DMP Initialization failed (code "));
-    Serial.print(devStatus);
-    Serial.println(F(")"));
+    // Serial.print(F("DMP Initialization failed (code "));
+    // Serial.print(devStatus);
+    // Serial.println(F(")"));
   }
 }
 
-void Update_YPR() {
+void Update_leanAngle() {
   if (!dmpReady) {
     Serial.println("Shit failed yo");
     return;                                               // if programming failed, don't try to do anything
@@ -150,5 +152,8 @@ void Update_YPR() {
     mpu.dmpGetQuaternion(&q, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+
+    IMU_time_prev = IMU_time_now;
+    IMU_time_now = micros();
   }
 }
