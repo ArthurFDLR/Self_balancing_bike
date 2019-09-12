@@ -1,13 +1,13 @@
 /**   SELF STABILIZED BIKE - IMU
- *    
- * note : Working frequency is set in loop(){},
- *        the interrupt pin is therefor not used to trigger data reading.
- *        To avoid delayed transfer, the buffer is emptyed at the end of Update_YPR()
- *        
- * resources : https://www.i2cdevlib.com/docs/html/class_m_p_u6050.html   
- * author : Arthur FINDELAIR, github.com/ArthurFDLR
- * date : September 2019
- */
+
+   note : Working frequency is set in loop(){},
+          the interrupt pin is therefor not used to trigger data reading.
+          To avoid delayed transfer, the buffer is emptyed at the end of Update_YPR()
+
+   resources : https://www.i2cdevlib.com/docs/html/class_m_p_u6050.html
+   author : Arthur FINDELAIR, github.com/ArthurFDLR
+   date : September 2019
+*/
 
 // ==============================================
 // ===               VARIABLES                ===
@@ -30,15 +30,16 @@ Quaternion q;           // [w, x, y, z]         quaternion container
 VectorFloat gravity;    // [x, y, z]            gravity vector
 
 /*
-// ===============================================
-// ===       INTERRUPT DETECTION ROUTINE       ===
-// ===============================================
+  // ===============================================
+  // ===       INTERRUPT DETECTION ROUTINE       ===
+  // ===============================================
 
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void ISR_dmpDataReady() {
+  volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
+  void ISR_dmpDataReady() {
   mpuInterrupt = true;
-}
+  }
 */
+
 // =========================================================
 // ===         FUNCTION IMU : Setup and Update           ===
 // =========================================================
@@ -53,31 +54,33 @@ void IMU_setup() {
   // Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
-/*
-  // wait for ready
-  Serial.println(F("\nSend any character to begin DMP programming and demo: "));
-  while (Serial.available() && Serial.read()); // empty buffer
-  while (!Serial.available());                 // wait for data
-  while (Serial.available() && Serial.read()); // empty buffer again
-*/
+  /*
+    // wait for ready
+    Serial.println(F("\nSend any character to begin DMP programming and demo: "));
+    while (Serial.available() && Serial.read()); // empty buffer
+    while (!Serial.available());                 // wait for data
+    while (Serial.available() && Serial.read()); // empty buffer again
+  */
   // load and configure the DMP
   // Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
 
   // Useless since auto-calibration
   // supply your own gyro offsets here, scaled for min sensitivity
-/*
-  mpu.setXGyroOffset(220);
-  mpu.setYGyroOffset(76);
-  mpu.setZGyroOffset(-85);
-  mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
-*/
+
+  mpu.setXAccelOffset(-2222);
+  mpu.setYAccelOffset(841);
+  mpu.setZAccelOffset(1186);
+  mpu.setXGyroOffset(-661);
+  mpu.setYGyroOffset(-43);
+  mpu.setZGyroOffset(-33);
+
   // make sure it worked (returns 0 if so)
   if (devStatus == 0) {
     // Calibration Time: generate offsets and calibrate our MPU6050
-    mpu.CalibrateAccel(6);
-    mpu.CalibrateGyro(6);
-    mpu.PrintActiveOffsets();
+    //mpu.CalibrateAccel(6);
+    //mpu.CalibrateGyro(6);
+    //mpu.PrintActiveOffsets();
     // turn on the DMP, now that it's ready
     // Serial.println(F("Enabling DMP..."));
     mpu.setDMPEnabled(true);
@@ -111,20 +114,20 @@ void Update_leanAngle() {
     Serial.println("Shit failed yo");
     return;                                               // if programming failed, don't try to do anything
   }
-/*
-  // wait for MPU interrupt or extra packet(s) available
-  while (!mpuInterrupt && fifoCount < packetSize) {
-    if (mpuInterrupt && fifoCount < packetSize) {
-      // try to get out of the infinite loop
-      fifoCount = mpu.getFIFOCount();
+  /*
+    // wait for MPU interrupt or extra packet(s) available
+    while (!mpuInterrupt && fifoCount < packetSize) {
+      if (mpuInterrupt && fifoCount < packetSize) {
+        // try to get out of the infinite loop
+        fifoCount = mpu.getFIFOCount();
+      }
+      // other program behavior stuff here
+      // if you are really paranoid you can frequently test in between other
+      // stuff to see if mpuInterrupt is true, and if so, "break;" from the
+      // while() loop to immediately process the MPU data
     }
-    // other program behavior stuff here
-    // if you are really paranoid you can frequently test in between other
-    // stuff to see if mpuInterrupt is true, and if so, "break;" from the
-    // while() loop to immediately process the MPU data
-  }
-*/
-//  mpuInterrupt = false;                 // reset interrupt flag
+  */
+  //  mpuInterrupt = false;                 // reset interrupt flag
   mpuIntStatus = mpu.getIntStatus();    //get INT_STATUS byte
   fifoCount = mpu.getFIFOCount();       // get current FIFO count
 

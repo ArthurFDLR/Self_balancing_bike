@@ -13,13 +13,15 @@
 
 float leanAngle_prev; //degrees
 float leanAngleError = 0;
-const float leanAngle_Filter = 0.7;
+const float leanAngle_Filter = 0.9;
 
 float leanAngle_derivative_prev;
-const float leanAngle_Derivative_Filter = 0.7;
+const float leanAngle_Derivative_Filter = 0.5;
 
-int16_t P_control,I_control,D_control;
-const int16_t KP,KI,KD;
+int16_t P_control,I_control,D_control,S_control;
+int16_t PID_output;
+
+const int16_t KP,KI,KD,KS; // Tuning constants : Proportional, Integral, Derivative, Speed
 
 
 // ==============================================
@@ -27,7 +29,7 @@ const int16_t KP,KI,KD;
 // ==============================================
 
 
-void leanAngle_compute(){
+void leanAngle_compute(){ // Seems to work --> serialViewerMode=1
   
   leanAngle_prev = leanAngle;
   leanAngle_raw = ypr[1] * 180 / M_PI; // To cut down noises : round((ypr[1] * 180 / M_PI) * angle_Rounding_Value) / angle_Rounding_Value;
@@ -43,11 +45,12 @@ void leanAngle_compute(){
 
 
 void PID_compute(){
-
-  leanAngle_compute();
   
   P_control = KP * leanAngleError;
   I_control = KI * leanAngle_Integer;
   D_control = KD * leanAngle_derivative;
-  
+  S_control = KS * motorDirection * (motorSpeedRpm / 60.0);
+  PID_output = P_control + I_control + D_control + S_control;
+
+  // Add part to counter friction of motor and gearbox + command limit to protect motor
 }
