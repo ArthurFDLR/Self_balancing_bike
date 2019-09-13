@@ -8,26 +8,9 @@
  * date : September 2019
  */
 
-/*---------------------------------------*/
-/*   VARIABLE for Encoder management     */
-/*---------------------------------------*/
-
-const float motorFilter = 0.5;       // [0,1] exponential filter parameter
-const int8_t encoderCountRev = 212;
-const int8_t pinEncoderAInterrupt = 3; //PD3
-const int8_t pinEncoderB = 4;  //PD4
-
-const char registerMaskPIND = 0b00011000; //Show pin 
-volatile int32_t motorTickCount = 0;
-uint32_t motorTimePrev = 0; //Some of those variables can be ignored/simplify ; Microsec
-uint32_t motorTimeNow = 0;
-uint32_t motorTimeDiff = 0;
-uint32_t motorSpeedRpmPrev = 0;
-
-/*---------------------------------------*/
-/*   FUNCITON for Encoder management     */
-/*---------------------------------------*/
-
+// ==================================================================
+// ===         FUNCTION ENCODER : ISR, Setup and Update           ===
+// ==================================================================
 
 void ISR_updateEncoder(){ //Direct access to register to optimize time consumption
   if (((registerMaskPIND & PIND) == 0b00010000) or ((registerMaskPIND & PIND) == 0b00001000)){ 

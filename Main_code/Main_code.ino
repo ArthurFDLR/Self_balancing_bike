@@ -22,33 +22,97 @@
 // ===       VARIABLES and INSTANTIATIONS       ===
 // ================================================
 
-//// GLOBAL  ////
+/*--------------*/
+/*   GLOBAL     */
+/*--------------*/
 
 uint8_t serialViewerMode = 1;
 uint16_t timePrev = 0;
 uint16_t computationTime = 0;
 const int8_t workingFrequency = 65; //Hz
 
-//// PID controller  ////
+/*----------------------*/
+/*   PID controller     */
+/*----------------------*/
+
+// Tunings
+const int16_t KP,KI,KD,KS; // Tuning constants : Proportional, Integral, Derivative, Speed
+const float motorFriction = 0;
+
+// Exponential filter parameters
+const float leanAngle_Filter = 0.9;
+const float leanAngle_HeavyFilter = 0.6;
+const float setPoint_filter = 0.8;
+const float leanAngle_Derivative_Filter = 0.5;
+
+// Variables
+float leanAngle; //degrees
+float leanAngle_raw;
+float leanAngle_prev; //degrees
+float leanAngle_smoothed;
+float leanAngle_smoothed_prev;
+float leanAngleError = 0;
 
 float leanAngleSetPoint = 0;
-float leanAngle_raw;
-float leanAngle; //degrees
-float leanAngle_Integer;
+float leanAngleSetPoint_raw = 0;
+uint16_t setPoint_KP, setPoint_KD;
+
 float leanAngle_derivative;
+float leanAngle_derivative_smoothed;
+float leanAngle_derivative_prev;
 
-//// Encoder  ////
+float leanAngle_Integer;
 
-uint32_t motorSpeedRpmRaw = 0;
+float P_control,I_control,D_control,S_control;
+float PID_output;
+
+float PID_friction;
+
+/*---------------*/
+/*   ENCODER     */
+/*---------------*/
+
+const float motorFilter = 0.5;       // [0,1] exponential filter parameter
+const int8_t encoderCountRev = 212;
+const int8_t pinEncoderAInterrupt = 3; //PD3
+const int8_t pinEncoderB = 4;  //PD4
+const char registerMaskPIND = 0b00011000; //Show pin 
+
+volatile int32_t motorTickCount = 0;
+uint32_t motorTimePrev = 0; //Some of those variables can be ignored/simplify ; Microsec
+uint32_t motorTimeNow = 0;
+uint32_t motorTimeDiff = 0;
+
 uint32_t motorSpeedRpm = 0;
+uint32_t motorSpeedRpmRaw = 0;
+uint32_t motorSpeedRpmPrev = 0;
 int8_t motorDirection = 0; // {-1;0;1} with 0 => stopped
 
-//// IMU  ////
+/*-----------*/
+/*   IMU     */
+/*-----------*/
+
+const uint8_t pinIMUInterrupt = 2;
+MPU6050 mpu;
+
+// MPU control/status vars
+bool dmpReady = false;  // set true if DMP init was successful
+uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
+uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
+uint32_t packetSize;    // expected DMP packet size (default is 42 bytes)
+uint32_t fifoCount;     // count of all bytes currently in FIFO
+uint8_t fifoBuffer[64]; // FIFO storage buffer
+
+// orientation/motion vars
+Quaternion q;           // [w, x, y, z]         quaternion container
+VectorFloat gravity;    // [x, y, z]            gravity vector
 
 float ypr[3]; // [yaw, pitch, roll]
 uint32_t IMU_time_prev, IMU_time_now; // to compute leanAngle derivative and integer
 
-//// DC Motor control ////
+/*----------------*/
+/*   DC MOTOR     */
+/*----------------*/
 
 const int8_t pinPotentiometer = 0; // A0
 const int8_t pinEscPWM = 11;
@@ -57,7 +121,6 @@ const int8_t motorLimitPwm = 128; //Stay under 6V for 12V alim.
 
 DC_motor motor( pinEscPWM, pinEscDir, motorLimitPwm);  // PWM = Pin 11, DIR = Pin 12.
 int8_t motorCommandPwm = 0;
-
 
 // =====================================
 // ===       ARDUINO PROCESSES       ===

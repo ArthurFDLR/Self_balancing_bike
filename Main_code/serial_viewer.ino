@@ -11,7 +11,6 @@
 // ===          FUNCTION VIEWER            ===
 // ===========================================
 
-
 void Serial_viewer(uint8_t mode) {
   switch ( mode )
   {
@@ -21,6 +20,8 @@ void Serial_viewer(uint8_t mode) {
       Serial.print(leanAngle);
       Serial.print("\t");
       Serial.print(leanAngle_Integer);
+      Serial.print("\t");
+      Serial.print(leanAngle_derivative_smoothed);
       Serial.print("\t");
       Serial.println(leanAngle_derivative);
       break;

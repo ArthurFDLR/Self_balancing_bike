@@ -8,37 +8,8 @@
  */
 
 // ==============================================
-// ===               VARIABLES                ===
-// ==============================================
-
-float leanAngle_prev; //degrees
-float leanAngle_smoothed;
-float leanAngle_smoothed_prev;
-float leanAngleError = 0;
-const float leanAngle_Filter = 0.9;
-const float leanAngle_HeavyFilter = 0.6;
-
-float leanAngleSetPoint_raw = 0;
-float setPoint_filter = 0.8;
-uint16_t setPoint_KP, setPoint_KD;
-
-float leanAngle_derivative_prev;
-float leanAngle_derivative_smoothed;
-const float leanAngle_Derivative_Filter = 0.5;
-
-float P_control,I_control,D_control,S_control;
-float PID_output;
-
-
-const float motorFriction = 0;
-float PID_friction;
-const int16_t KP,KI,KD,KS; // Tuning constants : Proportional, Integral, Derivative, Speed
-
-
-// ==============================================
 // ===             FUNCTION PID               ===
 // ==============================================
-
 
 void leanAngle_compute(){ // Seems to work --> serialViewerMode=1
   
