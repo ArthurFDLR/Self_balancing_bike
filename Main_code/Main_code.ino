@@ -26,7 +26,7 @@
 /*   GLOBAL     */
 /*--------------*/
 
-uint8_t serialViewerMode = 1;
+uint8_t serialViewerMode = 2;
 uint16_t timePrev = 0;
 uint16_t computationTime = 0;
 const int8_t workingFrequency = 65; //Hz
@@ -36,7 +36,11 @@ const int8_t workingFrequency = 65; //Hz
 /*----------------------*/
 
 // Tunings
-const int16_t KP,KI,KD,KS; // Tuning constants : Proportional, Integral, Derivative, Speed
+const int16_t KP = 0;
+const int16_t KI = 0;
+const int16_t KD = 0;
+const int16_t KS = 0;
+
 const float motorFriction = 0;
 
 // Exponential filter parameters
@@ -48,7 +52,7 @@ const float leanAngle_Derivative_Filter = 0.5;
 // Variables
 float leanAngle; //degrees
 float leanAngle_raw;
-float leanAngle_prev; //degrees
+float leanAngle_prev;
 float leanAngle_smoothed;
 float leanAngle_smoothed_prev;
 float leanAngleError = 0;
@@ -73,7 +77,7 @@ float PID_friction;
 /*---------------*/
 
 const float motorFilter = 0.5;       // [0,1] exponential filter parameter
-const int8_t encoderCountRev = 212;
+const float encoderCountRev = 212.0;
 const int8_t pinEncoderAInterrupt = 3; //PD3
 const int8_t pinEncoderB = 4;  //PD4
 const char registerMaskPIND = 0b00011000; //Show pin 
@@ -121,6 +125,7 @@ const int8_t motorLimitPwm = 128; //Stay under 6V for 12V alim.
 
 DC_motor motor( pinEscPWM, pinEscDir, motorLimitPwm);  // PWM = Pin 11, DIR = Pin 12.
 int8_t motorCommandPwm = 0;
+int8_t motorCommandPwm_Offset = 0;
 
 // =====================================
 // ===       ARDUINO PROCESSES       ===
@@ -142,8 +147,8 @@ void loop() {
 
     timePrev = millis();
     motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
-    motor.setSpeed(motorCommandPwm);
-
+    motor.setSpeed(motorCommandPwm+motorCommandPwm_Offset);
+    
     Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
     Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
     leanAngle_compute();
@@ -153,6 +158,6 @@ void loop() {
     Serial_viewer(serialViewerMode);    
   }
   else {
-    Serial.println("_"); //Check working frequency calibration
+    //Serial.println("_"); //Check working frequency calibration
   }
 }
