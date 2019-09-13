@@ -53,10 +53,10 @@ uint32_t IMU_time_prev, IMU_time_now; // to compute leanAngle derivative and int
 const int8_t pinPotentiometer = 0; // A0
 const int8_t pinEscPWM = 11;
 const int8_t pinEscDir = 12;
-const int8_t limitMotorPwm = 128; //Stay under 6V for 12V alim.
+const int8_t motorLimitPwm = 128; //Stay under 6V for 12V alim.
 
-DC_motor motor( pinEscPWM, pinEscDir, limitMotorPwm);  // PWM = Pin 11, DIR = Pin 12.
-int8_t motorPwm = 0;
+DC_motor motor( pinEscPWM, pinEscDir, motorLimitPwm);  // PWM = Pin 11, DIR = Pin 12.
+int8_t motorCommandPwm = 0;
 
 
 // =====================================
@@ -78,8 +78,8 @@ void loop() {
   if (millis() - timePrev > 1000 / workingFrequency) {
 
     timePrev = millis();
-    motorPwm = map(analogRead(A0), 0, 1023, 0, limitMotorPwm);
-    motor.setSpeed(motorPwm);
+    motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
+    motor.setSpeed(motorCommandPwm);
 
     Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
     Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle

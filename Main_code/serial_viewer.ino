@@ -26,7 +26,7 @@ void Serial_viewer(uint8_t mode) {
       break;
     
     case 2:
-      Serial.print(motorPwm);
+      Serial.print(motorCommandPwm);
       Serial.print("\t");
       Serial.print(motorDirection);
       Serial.print("\t");
