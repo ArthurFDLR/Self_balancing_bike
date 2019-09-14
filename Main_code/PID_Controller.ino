@@ -45,6 +45,9 @@ void PID_compute(){
 
   S_control = KS * motorDirection * (motorSpeedRpm / 60.0);
 
-  motorCommandPwm = round(constrain( PID_output+PID_friction+S_control ,-motorLimitPwm ,motorLimitPwm));
+  motorCommandPwm = (int)(PID_output + PID_friction + S_control);
+  //motorCommandPwm = ((motorCommandPwm > motorLimitPwm) ? motorLimitPwm : motorCommandPwm);
+  //motorCommandPwm = ((motorCommandPwm < -motorLimitPwm) ? -motorLimitPwm : motorCommandPwm);
+  //motorCommandPwm = round(constrain( (int)(PID_output + PID_friction + S_control) ,-motorLimitPwm ,motorLimitPwm));
 
 }

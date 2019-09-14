@@ -26,7 +26,7 @@
 /*   GLOBAL     */
 /*--------------*/
 
-uint8_t serialViewerMode = 2;
+uint8_t serialViewerMode = 3;
 uint16_t timePrev = 0;
 uint16_t computationTime = 0;
 const int8_t workingFrequency = 65; //Hz
@@ -36,7 +36,7 @@ const int8_t workingFrequency = 65; //Hz
 /*----------------------*/
 
 // Tunings
-const int16_t KP = 0;
+const int16_t KP = 10;
 const int16_t KI = 0;
 const int16_t KD = 0;
 const int16_t KS = 0;
@@ -59,7 +59,8 @@ float leanAngleError = 0;
 
 float leanAngleSetPoint = 0;
 float leanAngleSetPoint_raw = 0;
-uint16_t setPoint_KP, setPoint_KD;
+uint16_t setPoint_KP = 0;
+uint16_t setPoint_KD = 0;
 
 float leanAngle_derivative;
 float leanAngle_derivative_smoothed;
@@ -124,8 +125,8 @@ const int8_t pinEscDir = 12;
 const int8_t motorLimitPwm = 128; //Stay under 6V for 12V alim.
 
 DC_motor motor( pinEscPWM, pinEscDir, motorLimitPwm);  // PWM = Pin 11, DIR = Pin 12.
-int8_t motorCommandPwm = 0;
-int8_t motorCommandPwm_Offset = 0;
+int16_t motorCommandPwm = 0;
+int16_t motorCommandPwm_Offset = 0;
 
 // =====================================
 // ===       ARDUINO PROCESSES       ===
@@ -146,12 +147,13 @@ void loop() {
   if (millis() - timePrev > 1000 / workingFrequency) {
 
     timePrev = millis();
-    motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
-    motor.setSpeed(motorCommandPwm+motorCommandPwm_Offset);
+    //motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
     
     Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
     Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
     leanAngle_compute();
+    PID_compute();
+    motor.setSpeed(motorCommandPwm+motorCommandPwm_Offset);
     
     computationTime = millis() - timePrev;
     
