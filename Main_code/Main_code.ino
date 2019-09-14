@@ -1,22 +1,22 @@
 /**   SELF STABILIZED BIKE
- *  
- * note : - Run on arduino nano
- *        - Controle and measure DC motor's speed
- *        - Read IMU data
- *        - Compute PIDs data
- * 
- * author : Arthur FINDELAIR, github.com/ArthurFDLR
- * date : September 2019
- */
+
+   note : - Run on arduino nano
+          - Controle and measure DC motor's speed
+          - Read IMU data
+          - Compute PIDs data
+
+   author : Arthur FINDELAIR, github.com/ArthurFDLR
+   date : September 2019
+*/
 
 // =============================
 // ===       Libraries       ===
 // =============================
 
-#include "src/DC_motor_driver/DC_motor_driver.h"
-#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
-#include "Wire.h"
+//#include "src/DC_motor_driver/DC_motor_driver.h"
+#include <I2Cdev.h>
+#include <MPU6050_6Axis_MotionApps20.h>
+#include <Wire.h>
 
 // ================================================
 // ===       VARIABLES and INSTANTIATIONS       ===
@@ -26,7 +26,8 @@
 /*   GLOBAL     */
 /*--------------*/
 
-uint8_t serialViewerMode = 3;
+uint8_t machineState = 2;
+uint8_t serialViewerMode = 2;
 uint16_t timePrev = 0;
 uint16_t computationTime = 0;
 const int8_t workingFrequency = 65; //Hz
@@ -68,7 +69,7 @@ float leanAngle_derivative_prev;
 
 float leanAngle_Integer;
 
-float P_control,I_control,D_control,S_control;
+float P_control, I_control, D_control, S_control;
 float PID_output;
 
 float PID_friction;
@@ -81,7 +82,7 @@ const float motorFilter = 0.5;       // [0,1] exponential filter parameter
 const float encoderCountRev = 212.0;
 const int8_t pinEncoderAInterrupt = 3; //PD3
 const int8_t pinEncoderB = 4;  //PD4
-const char registerMaskPIND = 0b00011000; //Show pin 
+const char registerMaskPIND = 0b00011000; //Show pin
 
 volatile int32_t motorTickCount = 0;
 uint32_t motorTimePrev = 0; //Some of those variables can be ignored/simplify ; Microsec
@@ -122,11 +123,13 @@ uint32_t IMU_time_prev, IMU_time_now; // to compute leanAngle derivative and int
 const int8_t pinPotentiometer = 0; // A0
 const int8_t pinEscPWM = 11;
 const int8_t pinEscDir = 12;
-const int8_t motorLimitPwm = 128; //Stay under 6V for 12V alim.
-
-DC_motor motor( pinEscPWM, pinEscDir, motorLimitPwm);  // PWM = Pin 11, DIR = Pin 12.
+const int16_t motorLimitPwm = 128; //Stay under 6V for 12V alim.
+const int16_t motor_Starter_SpeedLimit = 70;
+// DC_motor motor( pinEscPWM, pinEscDir, motorLimitPwm);  // PWM = Pin 11, DIR = Pin 12.
 int16_t motorCommandPwm = 0;
-int16_t motorCommandPwm_Offset = 0;
+int16_t motorCommandPwm_prev = 0;
+int16_t motorCommandPwm_Offset = 25;
+int16_t motorCommandPwm_Starter_Offset = 100;
 
 // =====================================
 // ===       ARDUINO PROCESSES       ===
@@ -134,7 +137,6 @@ int16_t motorCommandPwm_Offset = 0;
 
 void setup() {
   Wire.begin(); // join I2C bus (I2Cdev library doesn't do this automatically)
-  //Wire.setClock(400000); // 400kHz I2C clock. By default : 100kHz
   Serial.begin(9600);
 
   Encoder_Setup();
@@ -147,17 +149,34 @@ void loop() {
   if (millis() - timePrev > 1000 / workingFrequency) {
 
     timePrev = millis();
-    //motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
-    
-    Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
-    Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
-    leanAngle_compute();
-    PID_compute();
-    motor.setSpeed(motorCommandPwm+motorCommandPwm_Offset);
-    
+
+    switch (machineState) {
+
+      case 1 : // PID controlled mode
+
+        Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
+        Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
+        leanAngle_compute();
+        PID_compute();
+        //motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
+        Set_Motor_Speed();
+
+        break;
+      case 2 : // Motor test
+
+        serialViewerMode = 2;
+        Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
+        motorCommandPwm =- map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
+        Set_Motor_Speed();
+        
+        break;
+
+      default:
+        break;
+    }
+
     computationTime = millis() - timePrev;
-    
-    Serial_viewer(serialViewerMode);    
+    Serial_viewer(serialViewerMode);
   }
   else {
     //Serial.println("_"); //Check working frequency calibration

@@ -1,8 +1,7 @@
 /**   SELF STABILIZED BIKE - PID
  *    
  * note : Might need anti wind-up, derivative filtering and automatic setpoint adjustment
- * 
- * resources : https://www.i2cdevlib.com/docs/html/class_m_p_u6050.html   
+ *
  * author : Arthur FINDELAIR, github.com/ArthurFDLR
  * date : September 2019
  */
