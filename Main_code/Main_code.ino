@@ -26,8 +26,8 @@
 /*   GLOBAL     */
 /*--------------*/
 
-uint8_t machineState = 2;
-uint8_t serialViewerMode = 2;
+char machineState = '0';
+char serialViewerMode = '0';
 uint16_t timePrev = 0;
 uint16_t computationTime = 0;
 const int8_t workingFrequency = 65; //Hz
@@ -37,12 +37,15 @@ const int8_t workingFrequency = 65; //Hz
 /*----------------------*/
 
 // Tunings
-const int16_t KP = 10;
-const int16_t KI = 0;
-const int16_t KD = 0;
-const int16_t KS = 0;
+uint32_t KP = 10;
+uint32_t KI = 0;
+uint32_t KD = 0;
+uint32_t KS = 0;
 
-const float motorFriction = 0;
+uint32_t motorFriction = 0;
+
+uint32_t setPoint_KP = 0;
+uint32_t setPoint_KD = 0;
 
 // Exponential filter parameters
 const float leanAngle_Filter = 0.9;
@@ -60,8 +63,6 @@ float leanAngleError = 0;
 
 float leanAngleSetPoint = 0;
 float leanAngleSetPoint_raw = 0;
-uint16_t setPoint_KP = 0;
-uint16_t setPoint_KD = 0;
 
 float leanAngle_derivative;
 float leanAngle_derivative_smoothed;
@@ -138,37 +139,47 @@ int16_t motorCommandPwm_Starter_Offset = 100;
 void setup() {
   Wire.begin(); // join I2C bus (I2Cdev library doesn't do this automatically)
   Serial.begin(9600);
+  Serial.setTimeout(5);
 
   Encoder_Setup();
   IMU_setup();
 
-  timePrev = millis();
+  Serial.println(F("\n\nReady to run !"));
+  Serial.print(F("Mode set to ")); Serial.println(machineState);
+  timePrev = millis(); 
 }
 
 void loop() {
   if (millis() - timePrev > 1000 / workingFrequency) {
 
+    if (Serial.available()) {
+      analogWrite(pinEscPWM, 0); //Shut down motor
+      machineState = Serial.read();
+      serialViewerMode = machineState;
+      Serial.print(F("\n\nState set to ")); Serial.println(machineState);
+    }
+
     timePrev = millis();
 
     switch (machineState) {
 
-      case 1 : // PID controlled mode
-
+      case '1' : // PID controlled mode
         Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
         Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
         leanAngle_compute();
         PID_compute();
         //motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
         Set_Motor_Speed();
-
         break;
-      case 2 : // Motor test
 
-        serialViewerMode = 2;
+      case '2' : // Motor test
         Update_MotorData(); // Update value of motorSpeedRpm (filtered) and motorDirection; both used to compute PIDs
-        motorCommandPwm =- map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
+        motorCommandPwm = - map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
         Set_Motor_Speed();
-        
+        break;
+
+      case 'p' : // Update KP
+        KP = Update_uint32_serial(KP);
         break;
 
       default:

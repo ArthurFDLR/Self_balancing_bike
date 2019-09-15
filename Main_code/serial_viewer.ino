@@ -11,10 +11,10 @@
 // ===          FUNCTION VIEWER            ===
 // ===========================================
 
-void Serial_viewer(uint8_t mode) {
+void Serial_viewer(char mode) {
   switch ( mode )
   {
-    case 1:
+    case '1':
       Serial.print(leanAngle_raw);
       Serial.print("\t");
       Serial.print(leanAngle);
@@ -26,7 +26,7 @@ void Serial_viewer(uint8_t mode) {
       Serial.println(leanAngle_derivative);
       break;
 
-    case 2:
+    case '2':
       Serial.print(motorCommandPwm);
       Serial.print("\t");
       Serial.print(motorDirection);
@@ -36,7 +36,7 @@ void Serial_viewer(uint8_t mode) {
       Serial.println(motorSpeedRpm);
       break;
 
-    case 3:
+    case '3':
       Serial.print(leanAngleSetPoint);
       Serial.print("\t");
       Serial.print(leanAngleError);
@@ -53,5 +53,15 @@ void Serial_viewer(uint8_t mode) {
     default:
       break;
   }
+}
 
+uint32_t Update_uint32_serial(uint32_t tunedValue) {
+  uint32_t valueRead = 0;
+  Serial.print(F("Update constante, current value : ")); Serial.println(tunedValue);
+  while (!Serial.available()); //Wait for serial comm
+  valueRead = Serial.parseInt();
+  Serial.print(F("New value : ")); Serial.println(valueRead);
+  machineState = '0'; //Back to mode 0
+  Serial.print(F("\n\nState set to ")); Serial.println(machineState);
+  return valueRead;
 }
