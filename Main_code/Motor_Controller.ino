@@ -18,11 +18,25 @@ void Set_Motor_Speed() {
 
 
   // Motor launching
-  if ( (abs(motorSpeedRpm) < 80) & (abs(motorCommandPwm) > 1) ) {
+  if ( (abs(motorSpeedRpm) < 80) & (abs(motorCommandPwm) > 1) & (abs(motorCommandPwm) < motorCommandPwm_Offset)) {
     motorCommandPwm += ((motorCommandPwm > 0) ? 1 : - 1) * motorCommandPwm_Starter_Offset ;
   } else if (abs(motorCommandPwm) > 1 ) {
     motorCommandPwm += ((motorCommandPwm > 0) ? 1 : - 1) * motorCommandPwm_Offset;
   }
+  
+  /*
+    if (abs(motorCommandPwm) > motorCommandPwm_Offset){
+    motorCommandPwm += ((motorCommandPwm > 0) ? 1 : - 1) * motorCommandPwm_Offset;
+    }   else if ((abs(motorCommandPwm) > 1) & (abs(motorCommandPwm) < motorCommandPwm_Offset)){
+    motorCommandPwm += ((motorCommandPwm > 0) ? 1 : - 1) * ( motorCommandPwm_Offset/2 + motorCommandPwm );
+    }
+
+    else if (abs(motorCommandPwm) > 10) {
+    motorCommandPwm *= 2 ;
+    } else if (abs(motorCommandPwm) > 1){
+    motorCommandPwm = 10;
+    }
+  */
 
   // Limit motor command
   if (motorCommandPwm > motorLimitPwm) {
@@ -32,8 +46,8 @@ void Set_Motor_Speed() {
   }
 
   // Write speed
-  if (abs(motorCommandPwm - motorCommandPwm_prev) < motorCommandPwm_Starter_Offset - 10) {
-    motorCommandPwm = motorCommandPwm * 0.9 + motorCommandPwm_prev * (1.0 - 0.9);
+  if ((abs(motorCommandPwm - motorCommandPwm_prev) > motorCommandPwm_Offset - 20) & (abs(motorSpeedRpm) < 200)) {
+    motorCommandPwm = motorCommandPwm * 0.4 + motorCommandPwm_prev * (1.0 - 0.4);
     motorCommandPwm_prev = motorCommandPwm;
   }
 

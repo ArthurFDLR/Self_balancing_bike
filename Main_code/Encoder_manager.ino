@@ -44,12 +44,10 @@ void Update_MotorData() {
   motorSpeedRpmRaw = ((motorTickCount > 0) ? motorTickCount : -motorTickCount) * (60000000.0 / (encoderCountRev * motorTimeDiff)); // 60000000 => micros to min     / (encoderCountRev * motorTimeDiff)
 
   //Set motor rotation direction
-  if (motorSpeedRpm == 0) {
-    motorDirection = 0;
-  } else if (motorTickCount > 0) {
-    motorDirection = 1;
+  if (abs(motorTickCount) > 1){
+    motorDirection = ((motorTickCount > 0) ? 1 : -1);
   } else {
-    motorDirection = -1;
+    motorDirection = 0;
   }
   
   motorTickCount = 0;

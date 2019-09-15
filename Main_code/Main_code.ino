@@ -138,7 +138,7 @@ int16_t motorCommandPwm_Starter_Offset = 100;
 
 void setup() {
   Wire.begin(); // join I2C bus (I2Cdev library doesn't do this automatically)
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.setTimeout(5);
 
   Encoder_Setup();
@@ -146,7 +146,7 @@ void setup() {
 
   Serial.println(F("\n\nReady to run !"));
   Serial.print(F("Mode set to ")); Serial.println(machineState);
-  timePrev = millis(); 
+  timePrev = millis();
 }
 
 void loop() {
@@ -157,6 +157,12 @@ void loop() {
       machineState = Serial.read();
       serialViewerMode = machineState;
       Serial.print(F("\n\nState set to ")); Serial.println(machineState);
+
+      if (machineState == '1') { // reset computing
+        mpu.resetFIFO();
+        IMU_time_prev = micros();
+        IMU_time_now = micros();
+      }
     }
 
     timePrev = millis();
@@ -168,7 +174,6 @@ void loop() {
         Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
         leanAngle_compute();
         PID_compute();
-        //motorCommandPwm = map(analogRead(A0), 0, 1023, 0, motorLimitPwm);
         Set_Motor_Speed();
         break;
 
