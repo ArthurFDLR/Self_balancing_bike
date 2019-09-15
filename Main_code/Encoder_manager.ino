@@ -1,65 +1,47 @@
-/**
- * Run on arduino nano to controle and measure DC motor's speed.
- *
- * note : I tried to build a library to read the encoder.
- *        ISR calling inside of class is quite complicate.
- *        I didn't wanted to risk a lose of effectiveness.
- *        
- * author : Arthur FINDELAIR, github.com/ArthurFDLR
- * date : September 2019
- */
+/**   SELF STABILIZED BIKE - Encoder
 
-/*---------------------------------------*/
-/*   VARIABLE for Encoder management     */
-/*---------------------------------------*/
+   note : I tried to build a library to read the encoder.
+          ISR calling inside of class is quite complicate.
+          I didn't wanted to risk a lose of effectiveness.
 
-const float motorFilter = 0.5;       // [0,1] exponential filter parameter
-const int encoderCountRev = 212;
-const int pinEncoderAInterrupt = 3; //PD3
-const int pinEncoderB = 4;  //PD4
+   author : Arthur FINDELAIR, github.com/ArthurFDLR
+   date : September 2019
+*/
 
-const char registerMaskPIND = 0b00011000; //Show pin 
-volatile long motorTickCount = 0;
-unsigned long motorTimePrev = 0; //Some of those variables can be ignored/simplify
-unsigned long motorTimeNow = 0;
-unsigned long motorTimeDiff = 0;
-unsigned long motorSpeedRpmPrev = 0;
-unsigned long motorSpeedRpmRaw = 0;
+// ==================================================================
+// ===         FUNCTION ENCODER : ISR, Setup and Update           ===
+// ==================================================================
 
-
-/*---------------------------------------*/
-/*   FUNCITON for Encoder management     */
-/*---------------------------------------*/
-
-
-void ISR_updateEncoder(){ //Direct access to register to optimize time consumption
-  if (((registerMaskPIND & PIND) == 0b00010000) or ((registerMaskPIND & PIND) == 0b00001000)){ 
+void ISR_updateEncoder() { //Direct access to register to optimize time consumption
+  if (((registerMaskPIND & PIND) == 0b00010000) or ((registerMaskPIND & PIND) == 0b00001000)) {
     motorTickCount++;
-  } else if (((registerMaskPIND & PIND) == 0b00000000) or ((registerMaskPIND & PIND) == 0b00011000)){
+  } else if (((registerMaskPIND & PIND) == 0b00000000) or ((registerMaskPIND & PIND) == 0b00011000)) {
     motorTickCount--;
   }
 }
 
-void Encoder_Setup(){
+void Encoder_Setup() {
   pinMode(pinEncoderAInterrupt, INPUT_PULLUP);
   pinMode(pinEncoderB, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(pinEncoderAInterrupt), ISR_updateEncoder, CHANGE);
-  
-  motorTimePrev = millis();
+
+  motorTimePrev = micros();
 
   motorTickCount = 0;
+
 }
 
 
-void Update_MotorData(){
+void Update_MotorData() {
 
   //Get motor rotation speed from tick count
-  motorTimeNow = millis();
-  motorTimeDiff = motorTimeNow - motorTimePrev;
   motorTimePrev = motorTimeNow;
+  motorTimeNow = micros();
+
+  motorTimeDiff = (motorTimeNow - motorTimePrev); //micros
+  
   motorSpeedRpmPrev = motorSpeedRpm;
-  motorSpeedRpmRaw = ((motorTickCount > 0) ? motorTickCount : -motorTickCount) * 60000 / (encoderCountRev * motorTimeDiff); // 60000 => ms to s
-  motorTickCount = 0;
+  motorSpeedRpmRaw = ((motorTickCount > 0) ? motorTickCount : -motorTickCount) * (60000000.0 / (encoderCountRev * motorTimeDiff)); // 60000000 => micros to min     / (encoderCountRev * motorTimeDiff)
 
   //Set motor rotation direction
   if (motorSpeedRpm == 0) {
@@ -70,6 +52,7 @@ void Update_MotorData(){
     motorDirection = -1;
   }
   
+  motorTickCount = 0;
   //Filtering
   motorSpeedRpm = motorSpeedRpmRaw * motorFilter + motorSpeedRpmPrev * (1.0 - motorFilter);
 }

@@ -1,0 +1,52 @@
+/**   SELF STABILIZED BIKE - PID
+ *    
+ * note : Might need anti wind-up, derivative filtering and automatic setpoint adjustment
+ *
+ * author : Arthur FINDELAIR, github.com/ArthurFDLR
+ * date : September 2019
+ */
+
+// ==============================================
+// ===             FUNCTION PID               ===
+// ==============================================
+
+void leanAngle_compute(){ // Seems to work --> serialViewerMode=1
+  
+  leanAngle_prev = leanAngle;
+  leanAngle_raw = ypr[1] * 180 / M_PI; // To cut down noises : round((ypr[1] * 180 / M_PI) * angle_Rounding_Value) / angle_Rounding_Value;
+  leanAngle = leanAngle_raw * leanAngle_Filter + leanAngle_prev * (1.0 - leanAngle_Filter);
+  
+  leanAngleError = leanAngle - leanAngleSetPoint;
+
+  leanAngle_Integer += leanAngleError * (IMU_time_now - IMU_time_prev) / 1000000.0; // Might need anti wind-up
+
+  leanAngle_derivative_prev = leanAngle_derivative;
+  leanAngle_derivative = ((leanAngle - leanAngle_prev) / ((IMU_time_now - IMU_time_prev) / 1000000.0)) * leanAngle_Derivative_Filter + leanAngle_derivative_prev * (1.0 - leanAngle_Derivative_Filter);
+
+  // Automatic setup adjustment
+  leanAngle_smoothed_prev = leanAngle_smoothed;
+  leanAngle_smoothed = leanAngle * leanAngle_HeavyFilter + leanAngle_smoothed_prev * (1.0 - leanAngle_HeavyFilter);
+  leanAngle_derivative_smoothed = (leanAngle_smoothed - leanAngle_smoothed_prev) / ((IMU_time_now - IMU_time_prev) / 1000000.0);
+
+  leanAngleSetPoint_raw = leanAngleSetPoint - setPoint_KP * leanAngleError - leanAngle_derivative_smoothed * setPoint_KD;
+  leanAngleSetPoint = leanAngleSetPoint_raw * setPoint_filter + leanAngleSetPoint * (1.0 - setPoint_filter);
+}
+
+
+void PID_compute(){
+  
+  P_control = KP * leanAngleError;
+  I_control = KI * leanAngle_Integer;
+  D_control = KD * leanAngle_derivative;
+  PID_output = P_control + I_control + D_control;
+
+  PID_friction = motorDirection * motorFriction;
+
+  S_control = KS * motorDirection * (motorSpeedRpm / 60.0);
+
+  motorCommandPwm = (int)(PID_output + PID_friction + S_control);
+  //motorCommandPwm = ((motorCommandPwm > motorLimitPwm) ? motorLimitPwm : motorCommandPwm);
+  //motorCommandPwm = ((motorCommandPwm < -motorLimitPwm) ? -motorLimitPwm : motorCommandPwm);
+  //motorCommandPwm = round(constrain( (int)(PID_output + PID_friction + S_control) ,-motorLimitPwm ,motorLimitPwm));
+
+}
