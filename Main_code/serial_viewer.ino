@@ -14,42 +14,47 @@
 void Serial_viewer(char mode) {
   switch ( mode )
   {
-    case '1':
-      Serial.print(leanAngle_raw);
+    case '1': //PID tuning
+      Serial.print(leanAngleSetPoint);
       Serial.print("\t");
       Serial.print(leanAngle);
       Serial.print("\t");
-      Serial.print(leanAngle_Integer);
+      Serial.print(leanAngleError);
+      Serial.print("\t\t");
+      Serial.print(P_control);
       Serial.print("\t");
-      Serial.print(leanAngle_derivative_smoothed);
+      Serial.print(I_control);
       Serial.print("\t");
-      Serial.println(leanAngle_derivative);
+      Serial.print(D_control);
+      Serial.print("\t");
+      Serial.print(PID_output);
+      Serial.print("\t");
+      Serial.println(motorCommandPwm);
       break;
 
-    case '2':
+    case '2': //Encoder debug
       Serial.print(motorCommandPwm);
       Serial.print("\t");
       Serial.print(motorDirection);
       Serial.print("\t");
       Serial.print(motorSpeedRpmRaw);
       Serial.print("\t");
-      Serial.println(motorSpeedRpm);
+      Serial.print(motorSpeedRpm);
+      Serial.print("\t");
+      Serial.println(motorAccelerating);
       break;
 
-    case '3':
+
+    case '3': //Setpoint tuning
+      Serial.print(leanAngle_smoothed);
+      Serial.print("\t");
+      Serial.print(leanAngle_derivative_smoothed);
+      Serial.print("\t\t");
       Serial.print(leanAngleSetPoint);
       Serial.print("\t");
-      Serial.print(leanAngleError);
-      Serial.print("\t");
-      Serial.print(PID_friction);
-      Serial.print("\t");
-      Serial.print(S_control);
-      Serial.print("\t");
-      Serial.print(PID_output);
-      Serial.print("\t");
-      Serial.println(motorCommandPwm);
+      Serial.println(leanAngleError);
       break;
-      
+
     default:
       break;
   }

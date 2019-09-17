@@ -13,7 +13,6 @@
 // ===       Libraries       ===
 // =============================
 
-//#include "src/DC_motor_driver/DC_motor_driver.h"
 #include <I2Cdev.h>
 #include <MPU6050_6Axis_MotionApps20.h>
 #include <Wire.h>
@@ -37,21 +36,21 @@ const int8_t workingFrequency = 65; //Hz
 /*----------------------*/
 
 // Tunings
-uint32_t KP = 10;
+uint32_t KP = 500;
 uint32_t KI = 0;
 uint32_t KD = 0;
 uint32_t KS = 0;
 
 uint32_t motorFriction = 0;
 
-uint32_t setPoint_KP = 0;
-uint32_t setPoint_KD = 0;
+uint32_t setPoint_KP = 0; //100
+uint32_t setPoint_KD = 0;  //45
 
 // Exponential filter parameters
 const float leanAngle_Filter = 0.9;
-const float leanAngle_HeavyFilter = 0.6;
+const float leanAngle_HeavyFilter = 0.4;
 const float setPoint_filter = 0.8;
-const float leanAngle_Derivative_Filter = 0.5;
+const float leanAngle_Derivative_Filter = 0.6;
 
 // Variables
 float leanAngle; //degrees
@@ -61,17 +60,20 @@ float leanAngle_smoothed;
 float leanAngle_smoothed_prev;
 float leanAngleError = 0;
 
-float leanAngleSetPoint = 0;
+float leanAngleSetPoint = 2.7;
+float leanAngleSetPoint_prev = 0;
 float leanAngleSetPoint_raw = 0;
 
 float leanAngle_derivative;
-float leanAngle_derivative_smoothed;
 float leanAngle_derivative_prev;
+float leanAngle_derivative_smoothed;
+float leanAngle_derivative_smoothed_prev;
+
 
 float leanAngle_Integer;
 
-float P_control, I_control, D_control, S_control;
-float PID_output;
+double P_control, I_control, D_control, S_control;
+double PID_output = 0;
 
 float PID_friction;
 
@@ -94,6 +96,7 @@ uint32_t motorSpeedRpm = 0;
 uint32_t motorSpeedRpmRaw = 0;
 uint32_t motorSpeedRpmPrev = 0;
 int8_t motorDirection = 0; // {-1;0;1} with 0 => stopped
+bool motorAccelerating = false;
 
 /*-----------*/
 /*   IMU     */
@@ -158,10 +161,11 @@ void loop() {
       serialViewerMode = machineState;
       Serial.print(F("\n\nState set to ")); Serial.println(machineState);
 
-      if (machineState == '1') { // reset computing
+      if (machineState == '1' | machineState == '3') { // reset computing
         mpu.resetFIFO();
         IMU_time_prev = micros();
         IMU_time_now = micros();
+        PID_output = 40;
       }
     }
 
@@ -183,8 +187,27 @@ void loop() {
         Set_Motor_Speed();
         break;
 
+      case '3' : // Setpoint tuning
+        Update_MotorData();
+        Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
+        leanAngle_compute();
+        PID_compute();
+        break;
+
       case 'p' : // Update KP
         KP = Update_uint32_serial(KP);
+        break;
+
+      case 'i' : // Update KI
+        KI = Update_uint32_serial(KI);
+        break;
+
+      case 'd' : // Update KD
+        KD = Update_uint32_serial(KD);
+        break;
+
+      case 's' : // Update KS
+        KS = Update_uint32_serial(KS);
         break;
 
       default:

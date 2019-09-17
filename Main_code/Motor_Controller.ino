@@ -16,14 +16,16 @@ void Motor_Setup() {
 
 void Set_Motor_Speed() {
 
+  motorCommandPwm = (int)(PID_output);
 
   // Motor launching
-  if ( (abs(motorSpeedRpm) < 80) & (abs(motorCommandPwm) > 1) & (abs(motorCommandPwm) < motorCommandPwm_Offset)) {
+  if ( (abs(motorSpeedRpm) < 50) & (abs(motorCommandPwm) < motorCommandPwm_Offset)) { // & (abs(motorCommandPwm) > 0)
     motorCommandPwm += ((motorCommandPwm > 0) ? 1 : - 1) * motorCommandPwm_Starter_Offset ;
   } else if (abs(motorCommandPwm) > 1 ) {
     motorCommandPwm += ((motorCommandPwm > 0) ? 1 : - 1) * motorCommandPwm_Offset;
   }
-  
+
+
   /*
     if (abs(motorCommandPwm) > motorCommandPwm_Offset){
     motorCommandPwm += ((motorCommandPwm > 0) ? 1 : - 1) * motorCommandPwm_Offset;

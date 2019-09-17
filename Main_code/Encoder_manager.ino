@@ -45,12 +45,14 @@ void Update_MotorData() {
 
   //Set motor rotation direction
   if (abs(motorTickCount) > 1){
-    motorDirection = ((motorTickCount > 0) ? 1 : -1);
+    motorDirection = ((motorTickCount > 0) ? -1 : 1); // Inverse +1 / -1 to normalize rotation direction
   } else {
     motorDirection = 0;
   }
   
   motorTickCount = 0;
+  
   //Filtering
   motorSpeedRpm = motorSpeedRpmRaw * motorFilter + motorSpeedRpmPrev * (1.0 - motorFilter);
+  motorAccelerating = (motorSpeedRpm > motorSpeedRpmPrev);
 }
