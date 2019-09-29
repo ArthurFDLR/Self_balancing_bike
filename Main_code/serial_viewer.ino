@@ -55,6 +55,14 @@ void Serial_viewer(char mode) {
       Serial.println(leanAngleError);
       break;
 
+    case '4': //IMU viewer
+      Serial.print(leanAngle_smoothed);
+      Serial.print("\t");
+      Serial.print(leanAngle_derivative_smoothed);
+      Serial.print("\t\t");
+      Serial.println(leanAngle_Integer);
+      break;
+
     default:
       break;
   }

@@ -36,7 +36,7 @@ const int8_t workingFrequency = 65; //Hz
 /*----------------------*/
 
 // Tunings
-uint32_t KP = 500;
+uint32_t KP = 50;
 uint32_t KI = 0;
 uint32_t KD = 0;
 uint32_t KS = 0;
@@ -68,7 +68,6 @@ float leanAngle_derivative;
 float leanAngle_derivative_prev;
 float leanAngle_derivative_smoothed;
 float leanAngle_derivative_smoothed_prev;
-
 
 float leanAngle_Integer;
 
@@ -133,7 +132,7 @@ const int16_t motor_Starter_SpeedLimit = 70;
 int16_t motorCommandPwm = 0;
 int16_t motorCommandPwm_prev = 0;
 int16_t motorCommandPwm_Offset = 25;
-int16_t motorCommandPwm_Starter_Offset = 100;
+int16_t motorCommandPwm_Starter_Offset = 120;
 
 // =====================================
 // ===       ARDUINO PROCESSES       ===
@@ -161,7 +160,7 @@ void loop() {
       serialViewerMode = machineState;
       Serial.print(F("\n\nState set to ")); Serial.println(machineState);
 
-      if (machineState == '1' | machineState == '3') { // reset computing
+      if (machineState == '1' | machineState == '3' | machineState == '4') { // reset computing
         mpu.resetFIFO();
         IMU_time_prev = micros();
         IMU_time_now = micros();
@@ -192,6 +191,13 @@ void loop() {
         Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
         leanAngle_compute();
         PID_compute();
+        break;
+
+      case '4' : // IMU Viewer
+      Update_MotorData();
+        Update_leanAngle(); // Update the value of ypr[]; ypr[1] is used to compute leanAngle
+        leanAngle_compute();
+        //PID_compute();
         break;
 
       case 'p' : // Update KP

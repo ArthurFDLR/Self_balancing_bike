@@ -45,7 +45,7 @@ void PID_compute(){
 
   S_control = KS * motorDirection * (motorSpeedRpm / 60.0);
 
-  PID_output = 40 + (P_control + I_control + D_control + PID_friction + S_control) / 100;
+  PID_output += (P_control + I_control + D_control + PID_friction + S_control) / 100;
 
   if (PID_output > motorLimitPwm) {
     PID_output = motorLimitPwm;
